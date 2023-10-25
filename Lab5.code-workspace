@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "Lab5-controller"
+		},
+		{
+			"path": "Lab5-drive"
+		},
+		{
+			"path": "Lab5-tcs34725"
+		}
+	],
+	"settings": {}
+}

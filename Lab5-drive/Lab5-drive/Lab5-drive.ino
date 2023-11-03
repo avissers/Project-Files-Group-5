@@ -25,6 +25,7 @@ void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 // Control data packet structure
 struct ControlDataPacket {
   int dir;                                            // drive direction: 1 = forward, -1 = reverse, 0 = stop
+  int speed;                                          // speed from potentiometer (from 1 to 100)
   unsigned long time;                                 // time packet sent
 };
 
@@ -146,6 +147,7 @@ void loop() {
   float u[] = {0, 0};                                 // PID control signal
   int pwm[] = {0, 0};                                 // motor speed(s), represented in bit resolution
   int dir[] = {1, 1};                                 // direction that motor should turn
+  int stepRate = 0;                                   // define motor speed variable
   
   // if too many sequential packets have dropped, assume loss of controller, restart as safety measure
    if (commsLossCount > cMaxDroppedPackets) {
@@ -171,7 +173,8 @@ void loop() {
       velMotor[k] = velEncoder[k] / cCountsRev * 60;  // calculate motor shaft velocity in rpm
 
       // update target for set direction
-      posChange[k] = (float) (inData.dir * cMaxChange); // update with maximum speed
+      stepRate = map(inData.speed, 0, 100, 0, cMaxChange);  //map speed from controller to a step rate
+      posChange[k] = (float) (inData.dir * stepRate); // update with maximum speed
       targetF[k] = targetF[k] + posChange[k];         // set new target position
       if (k == 0) {                                   // assume differential drive
         target[k] = (long) targetF[k];                // motor 1 spins one way
@@ -198,6 +201,7 @@ void loop() {
       if (u[k] > cMaxSpeedInCounts) {                 // if control signal will saturate motor
         u[k] = cMaxSpeedInCounts;                     // impose upper limit
       }
+      //map(inData.speed, 0, 100, cMinPWM, cMaxPWM); // convert recieved signal to pwm
       pwm[k] = map(u[k], 0, cMaxSpeedInCounts, cMinPWM, cMaxPWM); // convert control signal to pwm
       if (commsLossCount < cMaxDroppedPackets / 4) {
         setMotor(dir[k], pwm[k], cIN1Chan[k], cIN2Chan[k]); // update motor speed and direction
@@ -279,7 +283,7 @@ void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   }
   memcpy(&inData, incomingData, sizeof(inData));      // store drive data from controller
 #ifdef PRINT_INCOMING
-  Serial.printf("%d, %d\n", inData.dir, inData.time);
+  Serial.printf("%d, %d, %d\n", inData.dir, inData.speed, inData.time);
 #endif
 }
 

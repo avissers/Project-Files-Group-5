@@ -27,6 +27,7 @@ struct ControlDataPacket {
   int dir;                                            // drive direction: 1 = forward, -1 = reverse, 0 = stop
   int speed;                                          // speed from potentiometer (from 1 to 100)
   unsigned long time;                                 // time packet sent
+  int turn;                                           // turn: -1 = left, 0 = straight, -1 = right
 };
 
 // Drive data packet structure
@@ -175,6 +176,14 @@ void loop() {
       // update target for set direction
       stepRate = map(inData.speed, 0, 100, 0, cMaxChange);  //map speed from controller to a step rate
       posChange[k] = (float) (inData.dir * stepRate); // update with maximum speed
+      
+      if(inData.turn == -1){                          // if we are turning left
+        posChange[0] = 0;                             // set motor one max speed to 0 (turn it off)
+      }
+      if(inData.turn == 1){                           // if we are turning right
+        posChange[1] = 0;                             // set motor two max speed to 0 (turn it off)
+      }
+    
       targetF[k] = targetF[k] + posChange[k];         // set new target position
       if (k == 0) {                                   // assume differential drive
         target[k] = (long) targetF[k];                // motor 1 spins one way

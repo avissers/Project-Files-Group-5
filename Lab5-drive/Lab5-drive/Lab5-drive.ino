@@ -74,7 +74,7 @@ ControlDataPacket inData;                             // control data packet fro
 DriveDataPacket driveData;                            // data packet to send controller
 
 // REPLACE WITH MAC ADDRESS OF YOUR CONTROLLER ESP32
-uint8_t receiverMacAddress[] = {0x00,0x01,0x02,0x03,0x04,0x05};  // MAC address of controller 00:01:02:03:04:05
+uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x32,0x6C};  // MAC address of controller 00:01:02:03:04:05
 esp_now_peer_info_t peerInfo = {};                    // ESP-NOW peer information
 
 void setup() {

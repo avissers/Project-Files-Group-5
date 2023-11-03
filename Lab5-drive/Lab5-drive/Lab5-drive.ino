@@ -216,12 +216,26 @@ void loop() {
       stepRate = map(inData.speed, 0, 100, 0, cMaxChange);  //map speed from controller to a step rate
       posChange[k] = (float) (inData.dir * stepRate); // update with maximum speed
       
-      if(inData.turn == -1){                          // if we are turning left
+    if(inData.dir != 0){                            // if forward/revese button is engaged
+      if(inData.turn == -1){                        // if we are turning left
         posChange[0] = 0;                             // set motor one max speed to 0 (turn it off)
       }
       if(inData.turn == 1){                           // if we are turning right
         posChange[1] = 0;                             // set motor two max speed to 0 (turn it off)
       }
+    }
+
+    if(inData.dir == 0){                            // if forward/revese button is NOT engaged
+      if(inData.turn == -1){                        // if we are turning left
+        posChange[0] = (float) (stepRate);          // turn left motor forwards
+        posChange[1] = (float) (-1 * stepRate);          // turn right motor opposite
+
+      }
+      if(inData.turn == 1){                          // if we are turning right
+        posChange[0] = (float) (-1 * stepRate);   // turn left motor opposite
+        posChange[1] = (float) (stepRate);       // turn right motor forwards
+      }
+    }
     
       targetF[k] = targetF[k] + posChange[k];         // set new target position
       if (k == 0) {                                   // assume differential drive

@@ -10,10 +10,15 @@
  //#define SERIAL_STUDIO                                 // print formatted string, that can be captured and parsed by Serial-Studio
  //#define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
  #define PRINT_INCOMING                                // uncomment to turn on output of incoming data
+#define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
+
 
 #include <Arduino.h>
 #include <esp_now.h>
 #include <WiFi.h>
+#include <Wire.h>
+#include <SPI.h>
+#include "Adafruit_TCS34725.h"
 
 // Function declarations
 void doHeartbeat();
@@ -33,6 +38,7 @@ struct ControlDataPacket {
 // Drive data packet structure
 struct DriveDataPacket {
   unsigned long time;                                 // time packet sent
+  boolean detected;
 };
 
 // Encoder structure
@@ -64,6 +70,7 @@ const int cMaxDroppedPackets = 20;                    // maximum number of packe
 const float kp = 1.5;                                 // proportional gain for PID
 const float ki = 0.2;                                 // integral gain for PID
 const float kd = 0.8;                                 // derivative gain for PID
+const int cTCSLED = 23;                               // GPIO pin for LED on TCS34725
 
 // Variables
 unsigned long lastHeartbeat = 0;                      // time of last heartbeat state change
@@ -80,6 +87,11 @@ DriveDataPacket driveData;                            // data packet to send con
 // REPLACE WITH MAC ADDRESS OF YOUR CONTROLLER ESP32
 uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x32,0x6C};  // MAC address of controller 00:01:02:03:04:05
 esp_now_peer_info_t peerInfo = {};                    // ESP-NOW peer information
+
+// TCS34725 colour sensor with 2.4 ms integration time and gain of 4
+// see https://github.com/adafruit/Adafruit_TCS34725/blob/master/Adafruit_TCS34725.h for all possible values
+Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_2_4MS, TCS34725_GAIN_4X);
+bool tcsFlag = 0;                                     // TCS34725 flag: 1 = connected; 0 = not found
 
 void setup() {
   Serial.begin(115200);                               // Standard baud rate for ESP32 serial monitor
@@ -101,6 +113,18 @@ void setup() {
     pinMode(encoder[k].chanB, INPUT);                 // configure GPIO for encoder channel B input
     // configure encoder to trigger interrupt with each rising edge on channel A
     attachInterruptArg(encoder[k].chanA, encoderISR, &encoder[k], RISING);
+    pinMode(cTCSLED, OUTPUT);                           // configure GPIO for control of LED on TCS34725
+
+    // Connect to TCS34725 colour sensor
+      if (tcs.begin()) {
+        Serial.printf("Found TCS34725 colour sensor\n");
+        tcsFlag = true;
+        digitalWrite(cTCSLED, 1);                         // turn on onboard LED 
+      } 
+      else {
+        Serial.printf("No TCS34725 found ... check your connections\n");
+        tcsFlag = false;
+      }
   }
 
   // Initialize ESP-NOW
@@ -154,6 +178,21 @@ void loop() {
    if (commsLossCount > cMaxDroppedPackets) {
     delay(1000);                                      // okay to block here as nothing else should be happening
     ESP.restart();                                    // restart ESP32
+  }
+
+  uint16_t r, g, b, c;                                // RGBC values from TCS34725
+  
+  if (tcsFlag) {                                      // if colour sensor initialized
+    tcs.getRawData(&r, &g, &b, &c);                   // get raw RGBC values
+  #ifdef PRINT_COLOUR            
+      Serial.printf("R: %d, G: %d, B: %d, C %d\n", r, g, b, c);
+  #endif
+  }
+
+  if(r > 30 && g > 12 && b > 15 && c > 61){
+    driveData.detected = true;
+  }else{
+    driveData.detected = false;
   }
 
   // store encoder positions to avoid conflicts with ISR updates

@@ -7,9 +7,9 @@
 //  Date:     2023 10 08 
 //
 
- //#define SERIAL_STUDIO                                 // print formatted string, that can be captured and parsed by Serial-Studio
- //#define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
- #define PRINT_INCOMING                                // uncomment to turn on output of incoming data
+//#define SERIAL_STUDIO                                 // print formatted string, that can be captured and parsed by Serial-Studio
+//#define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
+#define PRINT_INCOMING                                // uncomment to turn on output of incoming data
 #define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
 
 #include <Arduino.h>
@@ -212,8 +212,8 @@ void loop() {
       velMotor[k] = velEncoder[k] / cCountsRev * 60;  // calculate motor shaft velocity in rpm
 
       // update target for set direction
-      //stepRate = map(inData.speed, 0, 100, 0, cMaxChange);  //map speed from controller to a step rate
-      posChange[k] = (float) (inData.dir * inData.speed); // update with maximum speed
+      stepRate = map(inData.speed, 0, 100, 0, cMaxChange);  //map speed from controller to a step rate
+      posChange[k] = (float) (inData.dir * stepRate); // update with maximum speed
       
     if(inData.dir != 0){                            // if forward/revese button is engaged
       if(inData.turn == -1){                        // if we are turning left

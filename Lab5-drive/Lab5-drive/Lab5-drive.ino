@@ -12,7 +12,6 @@
  #define PRINT_INCOMING                                // uncomment to turn on output of incoming data
 #define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
 
-
 #include <Arduino.h>
 #include <esp_now.h>
 #include <WiFi.h>
@@ -30,7 +29,7 @@ void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 // Control data packet structure
 struct ControlDataPacket {
   int dir;                                            // drive direction: 1 = forward, -1 = reverse, 0 = stop
-  int speed;                                          // speed from potentiometer (from 1 to 100)
+  int speed;                                          // speed from potentiometer
   unsigned long time;                                 // time packet sent
   int turn;                                           // turn: -1 = left, 0 = straight, -1 = right
 };
@@ -213,8 +212,8 @@ void loop() {
       velMotor[k] = velEncoder[k] / cCountsRev * 60;  // calculate motor shaft velocity in rpm
 
       // update target for set direction
-      stepRate = map(inData.speed, 0, 100, 0, cMaxChange);  //map speed from controller to a step rate
-      posChange[k] = (float) (inData.dir * stepRate); // update with maximum speed
+      //stepRate = map(inData.speed, 0, 100, 0, cMaxChange);  //map speed from controller to a step rate
+      posChange[k] = (float) (inData.dir * inData.speed); // update with maximum speed
       
     if(inData.dir != 0){                            // if forward/revese button is engaged
       if(inData.turn == -1){                        // if we are turning left

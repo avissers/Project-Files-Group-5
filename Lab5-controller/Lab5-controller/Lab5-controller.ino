@@ -26,7 +26,7 @@ struct ControlDataPacket {
   int speed;                                          //motor speed
   unsigned long time;                                 // time packet sent
   int turn;                                           // turn direction: 1 = right, -1 = left, 0 = straight
-  boolean scan;                                       // 1 - scan, 0 - do nothing
+  int scan;                                           // 1 - scan, 0 - do nothing
 };
 
 // Drive data packet structure
@@ -52,7 +52,7 @@ Button leftButton = {27, 0, 0, false, true, true};          // define button to 
 Button rightButton = {13, 0, 0, false, true, true};         // define button to go straight
 Button forwardButton = {14, 0, 0, false, true, true};       // define button to go forward
 Button reverseButton = {12, 0, 0, false, true, true};       // define button to reverse
-Button scanButton = {13, 0, 0, false, true, true};          // define button for scanning
+Button scanButton = {33, 0, 0, false, true, true};          // define button for scanning
 
 // REPLACE WITH MAC ADDRESS OF YOUR DRIVE ESP32
 uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x26,0xC4};  // MAC address of drive 00:01:02:03:04:05 
@@ -80,8 +80,8 @@ void setup() {
   attachInterruptArg(rightButton.pin, buttonISR, &rightButton, CHANGE);  // configure right button ISR to trigger on change
   pinMode(cLED1Pin, OUTPUT);                                             // configure LED for output
   pinMode(cPotPin, INPUT);                                               // set up potentiometer for input
-  pinMode(scanButton.pin, INPUT_PULLUP);                                    // configure scanning button
-  attachInterruptArg(scanButton.pin, buttonISR, &scanButton, CHANGE);       // attach interrupt
+  pinMode(scanButton.pin, INPUT_PULLUP);                                 // configure scanning button
+  attachInterruptArg(scanButton.pin, buttonISR, &scanButton, CHANGE);    // attach interrupt
 
 
   // Initialize ESP-NOW
@@ -126,6 +126,8 @@ void loop() {
 
     if(!scanButton.state){
       controlData.scan = 1;
+    }else {
+      controlData.scan = 0;
     }
 
     if(!forwardButton.state){                        // if forward button is pressed

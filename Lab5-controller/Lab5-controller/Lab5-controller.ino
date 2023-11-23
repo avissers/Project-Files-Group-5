@@ -1,4 +1,4 @@
-//#define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
+#define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
 //#define PRINT_INCOMING                                // uncomment to turn on output of incoming data
 #include <Arduino.h>
 #include <WiFi.h>
@@ -53,7 +53,7 @@ Button forwardButton = {14, 0, 0, false, true, true};       // define button to 
 Button reverseButton = {12, 0, 0, false, true, true};       // define button to reverse
 
 // REPLACE WITH MAC ADDRESS OF YOUR DRIVE ESP32
-uint8_t receiverMacAddress[] = {0xA8,0x42,0xE3,0xCA,0x77,0x58};  // MAC address of drive 00:01:02:03:04:05 
+uint8_t receiverMacAddress[] = {0xA8,0x42,0xE3,0xCA,0x26,0xC4};  // MAC address of drive 00:01:02:03:04:05 
 esp_now_peer_info_t peerInfo = {};                    // ESP-NOW peer information
 ControlDataPacket controlData;                        // data packet to send to drive system
 DriveDataPacket inData;                               // data packet from drive system

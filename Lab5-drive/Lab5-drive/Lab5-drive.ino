@@ -1,11 +1,8 @@
 
-//test push
-
-#define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
+//#define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
 // #define SERIAL_STUDIO                                 // print formatted string, that can be captured and parsed by Serial-Studio
 // #define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
 //#define PRINT_INCOMING                                // uncomment to turn on output of incoming data
-
 
 #include <Arduino.h>
 #include <esp_now.h>
@@ -85,6 +82,7 @@ bool tcsFlag = 0;                                     // TCS34725 flag: 1 = conn
 
 // REPLACE WITH MAC ADDRESS OF YOUR CONTROLLER ESP32
 uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x5D,0x9C};  // MAC address of controller 78:E3:6D:65:5D:9C
+//uint8_t receiverMacAddress[] = {0xA8,0x42,0xE3,0xCA,0x77,0x58};  // MAC address of drive 00:01:02:03:04:05 
 esp_now_peer_info_t peerInfo = {};                    // ESP-NOW peer information
 
 void setup() {

@@ -1,18 +1,9 @@
-// 
-// MME 4487 Lab 5 Controller
-// 
-//  Language: Arduino (C++)
-//  Target:   ESP32
-//  Author:   Michael Naish
-//  Date:     2023 10 08 
-//
-
-// #define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
-// #define PRINT_INCOMING                                // uncomment to turn on output of incoming data
-
+//#define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
+//#define PRINT_INCOMING                                // uncomment to turn on output of incoming data
 #include <Arduino.h>
 #include <WiFi.h>
 #include <esp_now.h>
+
 
 // Function declarations
 void doHeartbeat();
@@ -33,12 +24,15 @@ struct Button {
 // Control data packet structure
 struct ControlDataPacket {
   int dir;                                            // drive direction: 1 = forward, -1 = reverse, 0 = stop
+  int speed;                                          //motor speed
   unsigned long time;                                 // time packet sent
+  int turn;                                           // turn direction: 1 = right, -1 = left, 0 = straight
 };
 
 // Drive data packet structure
 struct DriveDataPacket {
   unsigned long time;                                 // time packet sent
+  boolean detected;                                   // check if desired colour is detected
 };
 
 // Constants
@@ -47,16 +41,20 @@ const int cHeartbeatInterval = 500;                   // heartbeat blink interva
 const int cStatusLED = 26;                            // GPIO pin of communication status LED
 const long cDebounceDelay = 20;                       // button debounce delay in milliseconds
 const int cMaxDroppedPackets = 20;                    // maximum number of packets allowed to drop
+const int cPotPin = 34;                               // define potentiometer pin
+const int cLED1Pin = 25;                              // define pin for LED to signal colour sensed
 
 // Variables
-unsigned long lastHeartbeat = 0;                      // time of last heartbeat state change
-unsigned long lastTime = 0;                           // last time of motor control was updated
-unsigned int commsLossCount = 0;                      // number of sequential sent packets have dropped
-Button buttonFwd = {14, 0, 0, false, true, true};     // forward, NO pushbutton on GPIO 14, low state when pressed
-Button buttonRev = {12, 0, 0, false, true, true};     // reverse, NO pushbutton on GPIO 12, low state when pressed
+unsigned long lastHeartbeat = 0;                            // time of last heartbeat state change
+unsigned long lastTime = 0;                                 // last time of motor control was updated
+unsigned int commsLossCount = 0;                            // number of sequential sent packets have dropped
+Button leftButton = {27, 0, 0, false, true, true};          // define button to turn left
+Button rightButton = {13, 0, 0, false, true, true};         // define button to go straight
+Button forwardButton = {14, 0, 0, false, true, true};       // define button to go forward
+Button reverseButton = {12, 0, 0, false, true, true};       // define button to reverse
 
 // REPLACE WITH MAC ADDRESS OF YOUR DRIVE ESP32
-uint8_t receiverMacAddress[] = {0x00,0x01,0x02,0x03,0x04,0x05};  // MAC address of drive 00:01:02:03:04:05 
+uint8_t receiverMacAddress[] = {0xA8,0x42,0xE3,0xCA,0x77,0x58};  // MAC address of drive 00:01:02:03:04:05 
 esp_now_peer_info_t peerInfo = {};                    // ESP-NOW peer information
 ControlDataPacket controlData;                        // data packet to send to drive system
 DriveDataPacket inData;                               // data packet from drive system
@@ -69,12 +67,18 @@ void setup() {
   WiFi.disconnect();                                  // disconnect from network
   
   // Configure GPIO
-  pinMode(cHeartbeatLED, OUTPUT);                     // configure built-in LED for heartbeat as output
-  pinMode(cStatusLED, OUTPUT);                        // configure GPIO for communication status LED as output
-  pinMode(buttonFwd.pin, INPUT_PULLUP);               // configure GPIO for forward button pin as an input with pullup resistor
-  attachInterruptArg(buttonFwd.pin, buttonISR, &buttonFwd, CHANGE); // Configure forward pushbutton ISR to trigger on change
-  pinMode(buttonRev.pin, INPUT_PULLUP);               // configure GPIO for reverse button pin as an input with pullup resistor
-  attachInterruptArg(buttonRev.pin, buttonISR, &buttonRev, CHANGE); // Configure reverse pushbutton ISR to trigger on change
+  pinMode(cHeartbeatLED, OUTPUT);                                        // configure built-in LED for heartbeat as output
+  pinMode(cStatusLED, OUTPUT);                                           // configure GPIO for communication status LED as output
+  pinMode(forwardButton.pin, INPUT_PULLUP);                              // cconfigure forward button as input with pullup res
+  attachInterruptArg(forwardButton.pin, buttonISR, &forwardButton, CHANGE);  // configure forward button ISR to trigger on change
+  pinMode(reverseButton.pin, INPUT_PULLUP);                              // configure reverse button as input with pullup res
+  attachInterruptArg(reverseButton.pin, buttonISR, &reverseButton, CHANGE);  // configure reverse button ISR to trigger on change
+  pinMode(leftButton.pin, INPUT_PULLUP);                                 // configure left button as input with pullup res
+  attachInterruptArg(leftButton.pin, buttonISR, &leftButton, CHANGE);    // configure left button ISR to trigger on change
+  pinMode(rightButton.pin, INPUT_PULLUP);                                // configure right button as input with pullup res
+  attachInterruptArg(rightButton.pin, buttonISR, &rightButton, CHANGE);  // configure right button ISR to trigger on change
+  pinMode(cLED1Pin, OUTPUT);                                             // configure LED for output
+  pinMode(cPotPin, INPUT);                                               // set up potentiometer for input
 
   // Initialize ESP-NOW
   if (esp_now_init() != ESP_OK) 
@@ -114,16 +118,24 @@ void loop() {
   if (curTime - lastTime > 10000) {                   // wait ~10 ms
     lastTime = curTime;
     controlData.time = curTime;                       // update transmission time
-  
-    if (!buttonFwd.state) {                           // forward pushbutton pressed
-      controlData.dir = 1;
+    controlData.speed = map(analogRead(cPotPin), 0, 4095, 0, 100);
+
+    if(!forwardButton.state){                        // if forward button is pressed
+      controlData.dir = 1;                           // set direction equal to 1
+    }else if(!reverseButton.state){                  // if reverse button is pressed
+      controlData.dir = -1;                          // set direction equal to -1
+    }else{                                           // if neither button is pressed
+      controlData.dir = 0;                           // stop the motor
     }
-    else if (!buttonRev.state) {                      // reverse pushbutton pressed
-      controlData.dir = -1;
+
+    if (!leftButton.state) {                         // if left button is pressed
+      controlData.turn = -1;                         // set turn equal to -1
+    }else if (!rightButton.state) {                  // if right button is pressed
+      controlData.turn = 1;                          // set turn equal to 1
+    }else {                                          // if neither button is pressed
+      controlData.turn = 0;                          // no turn, go straight
     }
-    else {                                            // no input, stop
-      controlData.dir = 0;
-    }
+
     // if drive appears disconnected, update control signal to stop before sending
     if (commsLossCount > cMaxDroppedPackets) {
       controlData.dir = 0;
@@ -135,6 +147,11 @@ void loop() {
     }
     else {                                            // otherwise
       digitalWrite(cStatusLED, 1);                    // turn on communication status LED
+    }
+    if (inData.detected == true){                     // if we detected the colour desired
+      digitalWrite(cLED1Pin, 1);                      // turn on LED
+    }else{
+      digitalWrite(cLED1Pin, 0);                      // otherwise, LED is off
     }
   }
   doHeartbeat();                                      // update heartbeat LED

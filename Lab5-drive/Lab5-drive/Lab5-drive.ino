@@ -1,7 +1,7 @@
 
- //#define SERIAL_STUDIO                                 // print formatted string, that can be captured and parsed by Serial-Studio
- //#define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
- #define PRINT_INCOMING                                // uncomment to turn on output of incoming data
+//#define SERIAL_STUDIO                                 // print formatted string, that can be captured and parsed by Serial-Studio
+//#define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
+#define PRINT_INCOMING                                // uncomment to turn on output of incoming data
 #define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
 
 
@@ -25,6 +25,7 @@ struct ControlDataPacket {
   int speed;                                          // speed from potentiometer (from 1 to 100)
   unsigned long time;                                 // time packet sent
   int turn;                                           // turn: -1 = left, 0 = straight, -1 = right
+  boolean scan;                                       // 1 - initiate scan, 0 - do nothing
 };
 
 // Drive data packet structure
@@ -37,6 +38,7 @@ struct DriveDataPacket {
 struct Encoder {
   const int chanA;                                    // GPIO pin for encoder channel A
   const int chanB;                                    // GPIO pin for encoder channel B
+  //const int chanC;                                    // GPIO pin for encoder channel C
   long pos;                                           // current encoder position
 };
 
@@ -44,13 +46,11 @@ struct Encoder {
 const int cHeartbeatLED = 2;                          // GPIO pin of built-in LED for heartbeat
 const int cStatusLED = 27;                            // GPIO pin of communication status LED
 const int cHeartbeatInterval = 500;                   // heartbeat blink interval, in milliseconds
-const int cNumMotors = 2;                             // Number of DC motors
-const int cIN1Pin[] = {17, 19};                       // GPIO pin(s) for INT1
-//const int cIN1Pin[] = {16, 18};                       // GPIO pin(s) for INT1
-const int cIN1Chan[] = {0, 1};                        // PWM channe(s) for INT1
-const int c2IN2Pin[] = {16, 18};                      // GPIO pin(s) for INT2
-//const int c2IN2Pin[] = {17, 19};                      // GPIO pin(s) for INT2
-const int cIN2Chan[] = {2, 3};                        // PWM channel(s) for INT2
+const int cNumMotors = 3;                             // Number of DC motors
+const int cIN1Pin[] = {17, 19, 2};                    // GPIO pin(s) for INT1
+const int cIN1Chan[] = {0, 1, 2};                     // PWM channe(s) for INT1
+const int c2IN2Pin[] = {16, 18, 15};                  // GPIO pin(s) for INT2
+const int cIN2Chan[] = {3, 4, 5};                     // PWM channel(s) for INT2
 const int cPWMRes = 8;                                // bit resolution for PWM
 const int cMinPWM = 0;                                // PWM value for minimum speed that turns motor
 const int cMaxPWM = pow(2, cPWMRes) - 1;              // PWM value for maximum speed
@@ -68,11 +68,12 @@ const int cTCSLED = 23;                               // GPIO pin for LED on TCS
 unsigned long lastHeartbeat = 0;                      // time of last heartbeat state change
 unsigned long lastTime = 0;                           // last time of motor control was updated
 unsigned int commsLossCount = 0;                      // number of sequential sent packets have dropped
- Encoder encoder[] = {{25, 26, 0},                     // encoder 0 on GPIO 25 and 26, 0 position
-                      {32, 33, 0}};                    // encoder 1 on GPIO 32 and 33, 0 position
-long target[] = {0, 0};                               // target encoder count for motor
-long lastEncoder[] = {0, 0};                          // encoder count at last control cycle
-float targetF[] = {0.0, 0.0};                         // target for motor as float
+ Encoder encoder[] = {{25, 26, 0},                    // encoder 0 on GPIO 25 and 26, 0 position
+                      {32, 33, 0},                     // encoder 1 on GPIO 32 and 33, 0 position
+                      {34, 35, 0}};                   // encoder 2 on GPIO 34 and 35, 0 position
+long target[] = {0, 0, 0};                               // target encoder count for motor
+long lastEncoder[] = {0, 0, 0};                          // encoder count at last control cycle
+float targetF[] = {0.0, 0.0, 0.0};                         // target for motor as float
 ControlDataPacket inData;                             // control data packet from controller
 DriveDataPacket driveData;                            // data packet to send controller
 
@@ -153,17 +154,17 @@ void setup() {
 
 void loop() {
   float deltaT = 0;                                   // time interval
-  long pos[] = {0, 0};                                // current motor positions
-  float velEncoder[] = {0, 0};                        // motor velocity in counts/sec
-  float velMotor[] = {0, 0};                          // motor shaft velocity in rpm
-  float posChange[] = {0, 0};                         // change in position for set speed
-  long e[] = {0, 0};                                  // position error
-  float ePrev[] = {0, 0};                             // previous position error
-  float dedt[] = {0, 0};                              // rate of change of position error (de/dt)
-  float eIntegral[] = {0, 0};                         // integral of error 
-  float u[] = {0, 0};                                 // PID control signal
-  int pwm[] = {0, 0};                                 // motor speed(s), represented in bit resolution
-  int dir[] = {1, 1};                                 // direction that motor should turn
+  long pos[] = {0, 0, 0};                                // current motor positions
+  float velEncoder[] = {0, 0, 0};                        // motor velocity in counts/sec
+  float velMotor[] = {0, 0, 0};                          // motor shaft velocity in rpm
+  float posChange[] = {0, 0, 0};                         // change in position for set speed
+  long e[] = {0, 0, 0};                                  // position error
+  float ePrev[] = {0, 0, 0};                             // previous position error
+  float dedt[] = {0, 0, 0};                              // rate of change of position error (de/dt)
+  float eIntegral[] = {0, 0, 0};                         // integral of error 
+  float u[] = {0, 0, 0};                                 // PID control signal
+  int pwm[] = {0, 0, 0};                                 // motor speed(s), represented in bit resolution
+  int dir[] = {1, 1, 1};                                 // direction that motor should turn
   int stepRate = 0;                                   // define motor speed variable
   
   // if too many sequential packets have dropped, assume loss of controller, restart as safety measure
@@ -179,12 +180,6 @@ void loop() {
   #ifdef PRINT_COLOUR            
       Serial.printf("R: %d, G: %d, B: %d, C %d\n", r, g, b, c);
   #endif
-  }
-
-  if(r > 30 && g > 12 && b > 15 && c > 61){
-    driveData.detected = true;
-  }else{
-    driveData.detected = false;
   }
 
   // store encoder positions to avoid conflicts with ISR updates
@@ -223,11 +218,22 @@ void loop() {
         posChange[1] = (float) (-1 * stepRate);          // turn right motor opposite
 
       }
-      if(inData.turn == 1){                          // if we are turning right
-        posChange[0] = (float) (-1 * stepRate);   // turn left motor opposite
-        posChange[1] = (float) (stepRate);       // turn right motor forwards
+      if(inData.turn == 1){                         // if we are turning right
+        posChange[0] = (float) (-1 * stepRate);     // turn left motor opposite
+        posChange[1] = (float) (stepRate);          // turn right motor forwards
       }
     }
+
+    //test code
+    if(inData.scan == 1){                           // if we recieve a command to scan
+      if(r > 30 && g > 12 && b > 15 && c > 61){
+        driveData.detected = true;
+      }else{
+        driveData.detected = false;
+      }
+    }
+    posChange[2] = (float) (stepRate);                // turn CCW - reject object
+    //
     
       targetF[k] = targetF[k] + posChange[k];         // set new target position
       if (k == 0) {                                   // assume differential drive

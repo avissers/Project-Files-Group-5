@@ -25,7 +25,7 @@ struct ControlDataPacket {
   int speed;                                          // speed from potentiometer (from 1 to 100)
   unsigned long time;                                 // time packet sent
   int turn;                                           // turn: -1 = left, 0 = straight, -1 = right
-  boolean scan;                                       // 1 - initiate scan, 0 - do nothing
+  int scan;                                       // 1 - initiate scan, 0 - do nothing
 };
 
 // Drive data packet structure
@@ -205,10 +205,10 @@ void loop() {
       
     if(inData.dir != 0){                            // if forward/revese button is engaged
       if(inData.turn == -1){                        // if we are turning left
-        posChange[0] = 0;                             // set motor one max speed to 0 (turn it off)
+        posChange[0] = 0;                           // set motor one max speed to 0 (turn it off)
       }
-      if(inData.turn == 1){                           // if we are turning right
-        posChange[1] = 0;                             // set motor two max speed to 0 (turn it off)
+      if(inData.turn == 1){                        // if we are turning right
+        posChange[1] = 0;                          // set motor two max speed to 0 (turn it off)
       }
     }
 
@@ -224,20 +224,18 @@ void loop() {
       }
     }
 
-    //test code
+    //waterwheel code
     if(inData.scan == 1){                          // if we recieve a command to scan
       if(r > 10 && g > 11 && b > 9 && c > 25){     // if the object is bad
         driveData.detected = false;
         posChange[2] = (float) (stepRate);         // turn CCW - reject object
       }else{                                       // if the object is not bad
-        posChange[2] = (float) (-1 * stepRate);    // turn CCW - reject object
         driveData.detected = true;
+        posChange[2] = (float) (-1 * stepRate);    // turn CCW - reject object
       }
-    }else{                                          // if we are not scanning
-      posChange[2] = 0;                             // motor is off
-    }
-    posChange[2] = (float) (stepRate);                // turn CCW - reject object
-    //
+    }//else{                                          // if we are not scanning
+    //  posChange[2] = 0;                             // motor is off
+    //}
     
       targetF[k] = targetF[k] + posChange[k];         // set new target position
       if (k == 0) {                                   // assume differential drive

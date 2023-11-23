@@ -7,10 +7,11 @@
 //  Date:     2023 10 08 
 //
 
-//#define SERIAL_STUDIO                                 // print formatted string, that can be captured and parsed by Serial-Studio
-//#define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
+// #define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
+
+// #define SERIAL_STUDIO                                 // print formatted string, that can be captured and parsed by Serial-Studio
+// #define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
 #define PRINT_INCOMING                                // uncomment to turn on output of incoming data
-#define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
 
 #include <Arduino.h>
 #include <esp_now.h>
@@ -28,16 +29,16 @@ void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 
 // Control data packet structure
 struct ControlDataPacket {
-  int dir;                                            // drive direction: 1 = forward, -1 = reverse, 0 = stop
-  int speed;                                          // speed from potentiometer
+  int driveDir;                                            // drive direction: 1 = forward, -1 = reverse, 0 = stop
+  int turnDir;                                           // turn direction: 1 = left, -1 = right, 0 = straight
+  int speed;                                          // drive speed
   unsigned long time;                                 // time packet sent
-  int turn;                                           // turn: -1 = left, 0 = straight, -1 = right
 };
 
 // Drive data packet structure
 struct DriveDataPacket {
+  int colour;                                         // colour sensor state: 1 = good object detected, 0 = good object not detected
   unsigned long time;                                 // time packet sent
-  boolean detected;
 };
 
 // Encoder structure
@@ -52,11 +53,11 @@ const int cHeartbeatLED = 2;                          // GPIO pin of built-in LE
 const int cStatusLED = 27;                            // GPIO pin of communication status LED
 const int cHeartbeatInterval = 500;                   // heartbeat blink interval, in milliseconds
 const int cNumMotors = 2;                             // Number of DC motors
-//const int cIN1Pin[] = {17, 19};                       // GPIO pin(s) for INT1
-const int cIN1Pin[] = {16, 18};                       // GPIO pin(s) for INT1
+//const int cIN1Pin[] = {16, 18};                       // GPIO pin(s) for INT1
+const int cIN1Pin[] = {17, 19};                       // GPIO pin(s) for INT1
 const int cIN1Chan[] = {0, 1};                        // PWM channe(s) for INT1
-//const int c2IN2Pin[] = {16, 18};                      // GPIO pin(s) for INT2
-const int c2IN2Pin[] = {17, 19};                      // GPIO pin(s) for INT2
+//const int c2IN2Pin[] = {17, 19};                      // GPIO pin(s) for INT2
+const int c2IN2Pin[] = {16, 18};                      // GPIO pin(s) for INT2
 const int cIN2Chan[] = {2, 3};                        // PWM channel(s) for INT2
 const int cPWMRes = 8;                                // bit resolution for PWM
 const int cMinPWM = 0;                                // PWM value for minimum speed that turns motor
@@ -75,22 +76,22 @@ const int cTCSLED = 23;                               // GPIO pin for LED on TCS
 unsigned long lastHeartbeat = 0;                      // time of last heartbeat state change
 unsigned long lastTime = 0;                           // last time of motor control was updated
 unsigned int commsLossCount = 0;                      // number of sequential sent packets have dropped
- Encoder encoder[] = {{25, 26, 0},                     // encoder 0 on GPIO 25 and 26, 0 position
-                      {32, 33, 0}};                    // encoder 1 on GPIO 32 and 33, 0 position
+Encoder encoder[] = {{25, 26, 0},                     // encoder 0 on GPIO 25 and 26, 0 position
+                     {32, 33, 0}};                    // encoder 1 on GPIO 32 and 33, 0 position
 long target[] = {0, 0};                               // target encoder count for motor
 long lastEncoder[] = {0, 0};                          // encoder count at last control cycle
 float targetF[] = {0.0, 0.0};                         // target for motor as float
 ControlDataPacket inData;                             // control data packet from controller
 DriveDataPacket driveData;                            // data packet to send controller
 
-// REPLACE WITH MAC ADDRESS OF YOUR CONTROLLER ESP32
-uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x32,0x6C};  // MAC address of controller 00:01:02:03:04:05
-esp_now_peer_info_t peerInfo = {};                    // ESP-NOW peer information
-
 // TCS34725 colour sensor with 2.4 ms integration time and gain of 4
 // see https://github.com/adafruit/Adafruit_TCS34725/blob/master/Adafruit_TCS34725.h for all possible values
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_2_4MS, TCS34725_GAIN_4X);
 bool tcsFlag = 0;                                     // TCS34725 flag: 1 = connected; 0 = not found
+
+// REPLACE WITH MAC ADDRESS OF YOUR CONTROLLER ESP32
+uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x5D,0x9C};  // MAC address of controller 78:E3:6D:65:5D:9C
+esp_now_peer_info_t peerInfo = {};                    // ESP-NOW peer information
 
 void setup() {
   Serial.begin(115200);                               // Standard baud rate for ESP32 serial monitor
@@ -101,6 +102,7 @@ void setup() {
   
   pinMode(cHeartbeatLED, OUTPUT);                     // configure built-in LED for heartbeat
   pinMode(cStatusLED, OUTPUT);                        // configure GPIO for communication status LED as output
+  pinMode(cTCSLED, OUTPUT);                           // configure GPIO for control of LED on TCS34725
  
   // setup motors with encoders
   for (int k = 0; k < cNumMotors; k++) {
@@ -112,18 +114,6 @@ void setup() {
     pinMode(encoder[k].chanB, INPUT);                 // configure GPIO for encoder channel B input
     // configure encoder to trigger interrupt with each rising edge on channel A
     attachInterruptArg(encoder[k].chanA, encoderISR, &encoder[k], RISING);
-    pinMode(cTCSLED, OUTPUT);                           // configure GPIO for control of LED on TCS34725
-
-    // Connect to TCS34725 colour sensor
-      if (tcs.begin()) {
-        Serial.printf("Found TCS34725 colour sensor\n");
-        tcsFlag = true;
-        digitalWrite(cTCSLED, 1);                         // turn on onboard LED 
-      } 
-      else {
-        Serial.printf("No TCS34725 found ... check your connections\n");
-        tcsFlag = false;
-      }
   }
 
   // Initialize ESP-NOW
@@ -156,6 +146,17 @@ void setup() {
                                                                          receiverMacAddress[2], receiverMacAddress[3], 
                                                                          receiverMacAddress[4], receiverMacAddress[5]);
   }
+  
+  // Connect to TCS34725 colour sensor
+  if (tcs.begin()) {
+    Serial.printf("Found TCS34725 colour sensor\n");
+    tcsFlag = true;
+    digitalWrite(cTCSLED, 1);                         // turn on onboard LED 
+  } 
+  else {
+    Serial.printf("No TCS34725 found ... check your connections\n");
+    tcsFlag = false;
+  }
 }
 
 void loop() {
@@ -171,27 +172,27 @@ void loop() {
   float u[] = {0, 0};                                 // PID control signal
   int pwm[] = {0, 0};                                 // motor speed(s), represented in bit resolution
   int dir[] = {1, 1};                                 // direction that motor should turn
-  int stepRate = 0;                                   // define motor speed variable
+  uint16_t r, g, b, c;                                // RGBC values from TCS34725
+  
+  if (tcsFlag) {                                      // if colour sensor initialized
+    tcs.getRawData(&r, &g, &b, &c);                   // get raw RGBC values
+#ifdef PRINT_COLOUR            
+      Serial.printf("R: %d, G: %d, B: %d, C %d\n", r, g, b, c);
+#endif
+  }
+
+  // if read colour values are within target colour range, send packet back to controller
+  if (r >= 40 && r <= 60 && g >= 25 && g <= 60 && b >= 5 && b <= 20) {
+    driveData.colour = 1;
+  // not within range
+  } else {
+    driveData.colour = 0;
+  }
   
   // if too many sequential packets have dropped, assume loss of controller, restart as safety measure
    if (commsLossCount > cMaxDroppedPackets) {
     delay(1000);                                      // okay to block here as nothing else should be happening
     ESP.restart();                                    // restart ESP32
-  }
-
-  uint16_t r, g, b, c;                                // RGBC values from TCS34725
-  
-  if (tcsFlag) {                                      // if colour sensor initialized
-    tcs.getRawData(&r, &g, &b, &c);                   // get raw RGBC values
-  #ifdef PRINT_COLOUR            
-      Serial.printf("R: %d, G: %d, B: %d, C %d\n", r, g, b, c);
-  #endif
-  }
-
-  if(r > 30 && g > 12 && b > 15 && c > 61){
-    driveData.detected = true;
-  }else{
-    driveData.detected = false;
   }
 
   // store encoder positions to avoid conflicts with ISR updates
@@ -211,31 +212,66 @@ void loop() {
       lastEncoder[k] = pos[k];                        // store encoder count for next control cycle
       velMotor[k] = velEncoder[k] / cCountsRev * 60;  // calculate motor shaft velocity in rpm
 
-      // update target for set direction
-      stepRate = map(inData.speed, 0, 100, 0, cMaxChange);  //map speed from controller to a step rate
-      posChange[k] = (float) (inData.dir * stepRate); // update with maximum speed
+      /*case 1: drive forward/straight
+      conditions: forward button only*/
+      if (inData.driveDir == 1 && inData.turnDir == 0) {
+        posChange[k] = (float) (inData.driveDir * inData.speed); // update with controller speed and direction
+      }
+
+      /*case 2: drive forward/turn left
+      conditions: forward button + left button*/
+      else if (inData.driveDir == 1 && inData.turnDir == 1) {
+        posChange[0] = 0; // stop left motor
+        posChange[1] = (float) (inData.driveDir * inData.speed); // update with controller speed and direction
+      }
+
+      /*case 3: drive forward/turn right
+      conditions: forward button + right button*/
+      else if (inData.driveDir == 1 && inData.turnDir == -1) {
+        posChange[0] = (float) (inData.driveDir * inData.speed); // update with controller speed and direction
+        posChange[1] = 0; // stop right motor
+      }
       
-    if(inData.dir != 0){                            // if forward/revese button is engaged
-      if(inData.turn == -1){                        // if we are turning left
-        posChange[0] = 0;                             // set motor one max speed to 0 (turn it off)
+      /*case 4: drive reverse/straight
+      conditions: reverse button only*/
+      else if (inData.driveDir == -1 && inData.turnDir == 0) {
+        posChange[k] = (float) (inData.driveDir * inData.speed); // update with controller speed and direction
       }
-      if(inData.turn == 1){                           // if we are turning right
-        posChange[1] = 0;                             // set motor two max speed to 0 (turn it off)
+      
+      /*case 5: drive reverse/turn left
+      conditions: reverse button + left button*/
+      else if (inData.driveDir == -1 && inData.turnDir == 1) {
+        posChange[0] = 0; // stop left motor
+        posChange[1] = (float) (inData.driveDir * inData.speed); // update with controller speed and direction
       }
-    }
+      
+      /*case 6: drive reverse/turn right
+      conditions: reverse button + right button*/
+      else if (inData.driveDir == -1 && inData.turnDir == -1) {
+        posChange[0] = (float) (inData.driveDir * inData.speed); // update with controller speed and direction
+        posChange[1] = 0; // stop right motor
+      }
+      
+      /*case 7: rotate in place/turn left
+      conditions: left button only*/
+      else if (inData.driveDir == 0 && inData.turnDir == 1) {
+        posChange[0] = (float) (-1 * inData.turnDir * inData.speed); // update with controller speed and direction
+        posChange[1] = (float) (inData.turnDir * inData.speed); // update with controller speed and direction
+      }
+      
+      /*case 8: rotate in place/turn right
+      conditions: right button only*/
+      else if (inData.driveDir == 0 && inData.turnDir == -1) {
+        posChange[0] = (float) (-1 * inData.turnDir * inData.speed); // update with controller speed and direction
+        posChange[1] = (float) (inData.turnDir * inData.speed); // update with controller speed and direction
+      }
+      
+      /*case 9: no movement
+      conditions: no buttons pushed*/
+      else {
+      posChange[k] = 0; // update with controller speed and direction
+      }
 
-    if(inData.dir == 0){                            // if forward/revese button is NOT engaged
-      if(inData.turn == -1){                        // if we are turning left
-        posChange[0] = (float) (stepRate);          // turn left motor forwards
-        posChange[1] = (float) (-1 * stepRate);          // turn right motor opposite
-
-      }
-      if(inData.turn == 1){                          // if we are turning right
-        posChange[0] = (float) (-1 * stepRate);   // turn left motor opposite
-        posChange[1] = (float) (stepRate);       // turn right motor forwards
-      }
-    }
-    
       targetF[k] = targetF[k] + posChange[k];         // set new target position
       if (k == 0) {                                   // assume differential drive
         target[k] = (long) targetF[k];                // motor 1 spins one way
@@ -243,6 +279,8 @@ void loop() {
       else {
         target[k] = (long) -targetF[k];               // motor 2 spins in opposite direction
       }
+
+      Serial.printf("%d, %d\n", dir[0], pwm[0]); //test
 
       // use PID to calculate control signal to motor
       e[k] = target[k] - pos[k];                      // position error
@@ -257,12 +295,13 @@ void loop() {
         dir[k] = -1;                                  // set direction to reverse
       }
 
+      Serial.println(inData.driveDir);
+
       // set speed based on computed control signal
       u[k] = fabs(u[k]);                              // get magnitude of control signal
       if (u[k] > cMaxSpeedInCounts) {                 // if control signal will saturate motor
         u[k] = cMaxSpeedInCounts;                     // impose upper limit
       }
-      //map(inData.speed, 0, 100, cMinPWM, cMaxPWM); // convert recieved signal to pwm
       pwm[k] = map(u[k], 0, cMaxSpeedInCounts, cMinPWM, cMaxPWM); // convert control signal to pwm
       if (commsLossCount < cMaxDroppedPackets / 4) {
         setMotor(dir[k], pwm[k], cIN1Chan[k], cIN2Chan[k]); // update motor speed and direction
@@ -344,7 +383,7 @@ void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   }
   memcpy(&inData, incomingData, sizeof(inData));      // store drive data from controller
 #ifdef PRINT_INCOMING
-  Serial.printf("%d, %d, %d\n", inData.dir, inData.speed, inData.time);
+//  Serial.printf("%d, %d\n", inData.driveDir, inData.time);
 #endif
 }
 

@@ -225,11 +225,13 @@ void loop() {
     }
 
     //test code
-    if(inData.scan == 1){                           // if we recieve a command to scan
-      if(r > 30 && g > 12 && b > 15 && c > 61){
-        driveData.detected = true;
-      }else{
+    if(inData.scan == 1){                          // if we recieve a command to scan
+      if(r > 10 && g > 11 && b > 9 && c > 25){     // if the object is bad
         driveData.detected = false;
+        posChange[2] = (float) (stepRate);         // turn CCW - reject object
+      }else{                                       // if the object is not bad
+        posChange[2] = (float) (-1 * stepRate);    // turn CCW - reject object
+        driveData.detected = true;
       }
     }
     posChange[2] = (float) (stepRate);                // turn CCW - reject object

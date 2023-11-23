@@ -7,11 +7,10 @@
 //  Date:     2023 10 08 
 //
 
-// #define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
-
+#define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
 // #define SERIAL_STUDIO                                 // print formatted string, that can be captured and parsed by Serial-Studio
 // #define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
-#define PRINT_INCOMING                                // uncomment to turn on output of incoming data
+//#define PRINT_INCOMING                                // uncomment to turn on output of incoming data
 
 #include <Arduino.h>
 #include <esp_now.h>

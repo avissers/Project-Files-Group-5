@@ -233,6 +233,8 @@ void loop() {
         posChange[2] = (float) (-1 * stepRate);    // turn CCW - reject object
         driveData.detected = true;
       }
+    }else{                                          // if we are not scanning
+      posChange[2] = 0;                             // motor is off
     }
     posChange[2] = (float) (stepRate);                // turn CCW - reject object
     //

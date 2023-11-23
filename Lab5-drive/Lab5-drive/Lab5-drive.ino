@@ -2,7 +2,7 @@
 //#define SERIAL_STUDIO                                 // print formatted string, that can be captured and parsed by Serial-Studio
 //#define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
 #define PRINT_INCOMING                                // uncomment to turn on output of incoming data
-#define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
+//#define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
 
 
 #include <Arduino.h>
@@ -347,7 +347,8 @@ void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   }
   memcpy(&inData, incomingData, sizeof(inData));      // store drive data from controller
 #ifdef PRINT_INCOMING
-  Serial.printf("%d, %d, %d\n", inData.dir, inData.speed, inData.time);
+  //Serial.printf("%d, %d, %d\n", inData.dir, inData.speed, inData.time);
+  Serial.printf("%d\n", inData.scan);
 #endif
 }
 

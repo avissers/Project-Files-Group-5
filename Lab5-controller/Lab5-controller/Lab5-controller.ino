@@ -127,6 +127,9 @@ void loop() {
     if(!scanButton.state){
       controlData.scan = 1;
     }
+    else {
+      controlData.scan = 0;
+    }
 
     if(!forwardButton.state){                        // if forward button is pressed
       controlData.dir = 1;                           // set direction equal to 1

@@ -55,7 +55,7 @@ Button reverseButton = {12, 0, 0, false, true, true};       // define button to 
 Button scanButton = {33, 0, 0, false, true, true};          // define button for scanning
 
 // REPLACE WITH MAC ADDRESS OF YOUR DRIVE ESP32
-uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x26,0xC4};  // MAC address of drive 00:01:02:03:04:05 
+uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x5D,0x9C};  // MAC address of drive 78:E3:6D:65:5D:9C
 esp_now_peer_info_t peerInfo = {};                    // ESP-NOW peer information
 ControlDataPacket controlData;                        // data packet to send to drive system
 DriveDataPacket inData;                               // data packet from drive system

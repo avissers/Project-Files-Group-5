@@ -48,7 +48,7 @@ const int cHeartbeatInterval = 500;                   // heartbeat blink interva
 const int cNumMotors = 3;                             // Number of DC motors
 const int cIN1Pin[] = {17, 19, 14};                    // GPIO pin(s) for INT1
 const int cIN1Chan[] = {0, 1, 2};                     // PWM channe(s) for INT1
-const int c2IN2Pin[] = {16, 18, 12};                  // GPIO pin(s) for INT2
+const int c2IN2Pin[] = {16, 18, 13};                  // GPIO pin(s) for INT2
 const int cIN2Chan[] = {3, 4, 5};                     // PWM channel(s) for INT2
 const int cPWMRes = 8;                                // bit resolution for PWM
 const int cMinPWM = 0;                                // PWM value for minimum speed that turns motor
@@ -77,7 +77,7 @@ ControlDataPacket inData;                             // control data packet fro
 DriveDataPacket driveData;                            // data packet to send controller
 
 // REPLACE WITH MAC ADDRESS OF YOUR CONTROLLER ESP32
-uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x5D,0x9C};  // MAC address of controller 00:01:02:03:04:05
+uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x26,0xC4};  // MAC address of controller 78:E3:6D:65:26:C4
 esp_now_peer_info_t peerInfo = {};                    // ESP-NOW peer information
 
 // TCS34725 colour sensor with 2.4 ms integration time and gain of 4
@@ -236,7 +236,7 @@ void loop() {
     posChange[2] = 0;                             // motor is off
     }
     
-    Serial.printf("%d, %d, %d\n", posChange[0], posChange[1], posChange[2]);
+    Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);
 
       targetF[k] = targetF[k] + posChange[k];         // set new target position
       if (k == 0) {                                   // assume differential drive

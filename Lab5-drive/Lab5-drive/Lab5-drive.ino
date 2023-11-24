@@ -1,8 +1,8 @@
 
 //#define SERIAL_STUDIO                                 // print formatted string, that can be captured and parsed by Serial-Studio
 //#define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
-#define PRINT_INCOMING                                // uncomment to turn on output of incoming data
-//#define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
+// #define PRINT_INCOMING                                // uncomment to turn on output of incoming data
+#define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
 
 
 #include <Arduino.h>
@@ -225,18 +225,18 @@ void loop() {
 
     //waterwheel code
     if(inData.scan == 1){                          // if we recieve a command to scan
-       if(r > 10 && g > 11 && b > 9 && c > 25){     // if the object is bad
-         driveData.detected = false;
-         posChange[2] = (float) (stepRate);         // turn CCW - reject object
-       }else{                                       // if the object is not bad
+       if(r < 6 && g < 7 && b < 6 && c < 16){     // if the object is good
          driveData.detected = true;
-         posChange[2] = (float) (-1 * stepRate);    // turn CCW - reject object
+         posChange[2] = (float) (stepRate);
+       }else{                                       // if the object is bad
+         driveData.detected = false;
+         posChange[2] = (float) (-1 * stepRate);
        }
     }else{                                          // if we are not scanning
     posChange[2] = 0;                             // motor is off
     }
     
-    Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);
+    // Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);
 
       targetF[k] = targetF[k] + posChange[k];         // set new target position
       if (k == 0) {                                   // assume differential drive

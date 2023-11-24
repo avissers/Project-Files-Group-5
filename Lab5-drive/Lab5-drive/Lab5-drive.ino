@@ -25,7 +25,7 @@ struct ControlDataPacket {
   int speed;                                          // speed from potentiometer (from 1 to 100)
   unsigned long time;                                 // time packet sent
   int turn;                                           // turn: -1 = left, 0 = straight, -1 = right
-  int scan;                                       // 1 - initiate scan, 0 - do nothing
+  int scan;                                           // 1 - initiate scan, 0 - do nothing
 };
 
 // Drive data packet structure
@@ -38,7 +38,6 @@ struct DriveDataPacket {
 struct Encoder {
   const int chanA;                                    // GPIO pin for encoder channel A
   const int chanB;                                    // GPIO pin for encoder channel B
-  //const int chanC;                                    // GPIO pin for encoder channel C
   long pos;                                           // current encoder position
 };
 
@@ -47,9 +46,9 @@ const int cHeartbeatLED = 2;                          // GPIO pin of built-in LE
 const int cStatusLED = 27;                            // GPIO pin of communication status LED
 const int cHeartbeatInterval = 500;                   // heartbeat blink interval, in milliseconds
 const int cNumMotors = 3;                             // Number of DC motors
-const int cIN1Pin[] = {17, 19, 2};                    // GPIO pin(s) for INT1
+const int cIN1Pin[] = {17, 19, 14};                    // GPIO pin(s) for INT1
 const int cIN1Chan[] = {0, 1, 2};                     // PWM channe(s) for INT1
-const int c2IN2Pin[] = {16, 18, 15};                  // GPIO pin(s) for INT2
+const int c2IN2Pin[] = {16, 18, 12};                  // GPIO pin(s) for INT2
 const int cIN2Chan[] = {3, 4, 5};                     // PWM channel(s) for INT2
 const int cPWMRes = 8;                                // bit resolution for PWM
 const int cMinPWM = 0;                                // PWM value for minimum speed that turns motor
@@ -233,10 +232,12 @@ void loop() {
         driveData.detected = true;
         posChange[2] = (float) (-1 * stepRate);    // turn CCW - reject object
       }
-    }//else{                                          // if we are not scanning
-    //  posChange[2] = 0;                             // motor is off
-    //}
+    }else{                                          // if we are not scanning
+      posChange[2] = 0;                             // motor is off
+    }
     
+    Serial.printf("%d, %d, %d\n", posChange[0], posChange[1], posChange[2]);
+
       targetF[k] = targetF[k] + posChange[k];         // set new target position
       if (k == 0) {                                   // assume differential drive
         target[k] = (long) targetF[k];                // motor 1 spins one way
@@ -345,8 +346,8 @@ void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   }
   memcpy(&inData, incomingData, sizeof(inData));      // store drive data from controller
 #ifdef PRINT_INCOMING
-  //Serial.printf("%d, %d, %d\n", inData.dir, inData.speed, inData.time);
-  Serial.printf("%d\n", inData.scan);
+  // Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);
+  //Serial.printf("%d\n", inData.scan);
 #endif
 }
 

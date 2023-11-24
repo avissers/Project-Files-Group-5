@@ -271,6 +271,7 @@ void loop() {
           posChange[2] = 0;                             // motor is off
         }
     }
+    
     // Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);
 
       targetF[k] = targetF[k] + posChange[k];         // set new target position

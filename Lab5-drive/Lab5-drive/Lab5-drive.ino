@@ -225,15 +225,15 @@ void loop() {
 
     //waterwheel code
     if(inData.scan == 1){                          // if we recieve a command to scan
-      if(r > 10 && g > 11 && b > 9 && c > 25){     // if the object is bad
-        driveData.detected = false;
-        posChange[2] = (float) (stepRate);         // turn CCW - reject object
-      }else{                                       // if the object is not bad
-        driveData.detected = true;
-        posChange[2] = (float) (-1 * stepRate);    // turn CCW - reject object
-      }
+       if(r > 10 && g > 11 && b > 9 && c > 25){     // if the object is bad
+         driveData.detected = false;
+         posChange[2] = (float) (stepRate);         // turn CCW - reject object
+       }else{                                       // if the object is not bad
+         driveData.detected = true;
+         posChange[2] = (float) (-1 * stepRate);    // turn CCW - reject object
+       }
     }else{                                          // if we are not scanning
-      posChange[2] = 0;                             // motor is off
+    posChange[2] = 0;                             // motor is off
     }
     
     Serial.printf("%d, %d, %d\n", posChange[0], posChange[1], posChange[2]);

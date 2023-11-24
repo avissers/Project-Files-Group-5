@@ -1,8 +1,8 @@
 
 //#define SERIAL_STUDIO                                 // print formatted string, that can be captured and parsed by Serial-Studio
 //#define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
-// #define PRINT_INCOMING                                // uncomment to turn on output of incoming data
-#define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
+#define PRINT_INCOMING                                // uncomment to turn on output of incoming data
+//#define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
 
 
 #include <Arduino.h>
@@ -64,8 +64,10 @@ const float kd = 0.8;                                 // derivative gain for PID
 const int cTCSLED = 23;                               // GPIO pin for LED on TCS34725
 
 // Variables
+unsigned long detectionTime = 0;              // store time when object is detected
 unsigned long lastHeartbeat = 0;                      // time of last heartbeat state change
 unsigned long lastTime = 0;                           // last time of motor control was updated
+unsigned long  lastScanTime = 0;                       // last time we detected an object we want
 unsigned int commsLossCount = 0;                      // number of sequential sent packets have dropped
  Encoder encoder[] = {{25, 26, 0},                    // encoder 0 on GPIO 25 and 26, 0 position
                       {32, 33, 0},                     // encoder 1 on GPIO 32 and 33, 0 position
@@ -153,6 +155,7 @@ void setup() {
 
 void loop() {
   float deltaT = 0;                                   // time interval
+  float deltaScanT = 0;                                   // time interval for scanning
   long pos[] = {0, 0, 0};                                // current motor positions
   float velEncoder[] = {0, 0, 0};                        // motor velocity in counts/sec
   float velMotor[] = {0, 0, 0};                          // motor shaft velocity in rpm
@@ -224,18 +227,50 @@ void loop() {
     }
 
     //waterwheel code
-    if(inData.scan == 1){                          // if we recieve a command to scan
-       if(r < 6 && g < 7 && b < 6 && c < 16){     // if the object is good
+    // if(inData.scan == 1){                              // if we recieve a command to scan
+    // //unsigned long scanTime = millis();                            // capture detection time in milliseconds
+    //    if(r < 6 && g < 7 && b < 6 && c < 16){          // if the object is good
+    //      driveData.detected = true;
+    //      unsigned long scanTime = millis();                            // capture detection time in milliseconds
+    //      if (scanTime - lastScanTime > 2000) {                          // wait 2 s
+    //       lastScanTime = scanTime;                                     // update start time for next control cycle
+    //       posChange[2] = (float) (14);                            // run motor
+    //      }
+    //    }else{                                                          // if object is bad   
+    //       driveData.detected = false;
+    //       unsigned long scanTime = millis();                             // capture detection time in milliseconds
+    //       if (scanTime - lastScanTime > 2000) {                          // wait 2 s
+    //         lastScanTime = scanTime;                                     // update start time for next control cycle
+    //         posChange[2] = (float) (-1 * 14);                            // run motor
+    //       }
+    //    }
+    // }else{
+    //   posChange[2] = 0;                             // motor is off
+    // }
+
+
+      if(inData.scan == 1){                            // if we recieve a command to scan
+      detectionTime = millis();
+       if(r < 6 && g < 7 && b < 6 && c < 16){          // if the object is good
          driveData.detected = true;
+         //detectionTime = millis();                   // record time object is detected
          posChange[2] = (float) (stepRate);
-       }else{                                       // if the object is bad
+       }else{                                        // if the object is bad
          driveData.detected = false;
+         //detectionTime = millis();                   // record time object is detected
          posChange[2] = (float) (-1 * stepRate);
        }
-    }else{                                          // if we are not scanning
-    posChange[2] = 0;                             // motor is off
+      if(driveData.detected){
+        if ((millis()-detectionTime) < 1500) {
+          posChange[2] = (float) (stepRate);
+          } 
+          if ((millis()-detectionTime) < 3500) {
+            posChange[2] = (float) (-1 * stepRate);
+          }          
+        }else {                                          // if we are not scanning
+          posChange[2] = 0;                             // motor is off
+        }
     }
-    
     // Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);
 
       targetF[k] = targetF[k] + posChange[k];         // set new target position
@@ -347,7 +382,7 @@ void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   memcpy(&inData, incomingData, sizeof(inData));      // store drive data from controller
 #ifdef PRINT_INCOMING
   // Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);
-  //Serial.printf("%d\n", inData.scan);
+  Serial.printf("%d\n", inData.scan);
 #endif
 }
 

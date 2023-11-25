@@ -206,7 +206,9 @@ void loop() {
 
       // update target for set direction
       stepRate = map(inData.speed, 0, 100, 0, cMaxChange);  //map speed from controller to a step rate
-      posChange[k] = (float) (inData.dir * stepRate); // update with maximum speed
+      posChange[0] = (float) (inData.dir * stepRate); // update with maximum speed
+      posChange[1] = (float) (inData.dir * stepRate); // update with maximum speed
+
       
     if(inData.dir != 0){                            // if forward/revese button is engaged
       if(inData.turn == -1){                        // if we are turning left
@@ -220,7 +222,7 @@ void loop() {
     if(inData.dir == 0){                            // if forward/revese button is NOT engaged
       if(inData.turn == -1){                        // if we are turning left
         posChange[0] = (float) (stepRate);          // turn left motor forwards
-        posChange[1] = (float) (-1 * stepRate);          // turn right motor opposite
+        posChange[1] = (float) (-1 * stepRate);     // turn right motor opposite
 
       }
       if(inData.turn == 1){                         // if we are turning right
@@ -230,20 +232,20 @@ void loop() {
     }
 
     //waterwheel code
-    if(2 < r && r < 5 && g < 5 && g > 2 && b > 1 && b < 4 && c < 9 && c > 5){
+    if(1 < r && r < 3 && g < 4 && g > 1 && b > 1 && b < 3 && c < 9 && c > 5){
     Serial.println("nothing");
     posChange[2] = 0;
     scanTime = millis();
   }else{
     if((millis() - scanTime) > 2000){
-      if(2<r && r<5 && 3<g && g<7 && 2<b && b<5 && 11<c && c<15){
+      if(1<r && r<4 && 1<g && g<5 && 1<b && b<4){// && 9<c && c<13){
         Serial.println("good!!!!!!");
         driveData.detected = true;
-        posChange[2] = (float) (14*3);
+        posChange[2] = (float) (14*4);
       }else{
         Serial.println("bad!!!!!!!");
         driveData.detected = false;
-        posChange[2] = (float) (-1*14*3);
+        posChange[2] = (float) (-1*14*4);
       }
     }
   }

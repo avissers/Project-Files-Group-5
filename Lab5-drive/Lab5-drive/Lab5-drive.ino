@@ -1,7 +1,7 @@
 
 //#define SERIAL_STUDIO                                 // print formatted string, that can be captured and parsed by Serial-Studio
 //#define PRINT_SEND_STATUS                             // uncomment to turn on output packet send status
-// #define PRINT_INCOMING                                // uncomment to turn on output of incoming data
+//#define PRINT_INCOMING                                // uncomment to turn on output of incoming data
 #define PRINT_COLOUR                                  // uncomment to turn on output of colour sensor data
 
 
@@ -64,17 +64,22 @@ const float kd = 0.8;                                 // derivative gain for PID
 const int cTCSLED = 23;                               // GPIO pin for LED on TCS34725
 
 // Variables
+unsigned long detectionTime = 0;                      // store time when object is detected
 unsigned long lastHeartbeat = 0;                      // time of last heartbeat state change
 unsigned long lastTime = 0;                           // last time of motor control was updated
+unsigned long scanTime = 0;                           // last time of motor control was updated
+unsigned long scanDelay = 100;                        // delay between scans
+unsigned long lastScanTime = 0;                       // last time of motor control was updated
 unsigned int commsLossCount = 0;                      // number of sequential sent packets have dropped
  Encoder encoder[] = {{25, 26, 0},                    // encoder 0 on GPIO 25 and 26, 0 position
-                      {32, 33, 0},                     // encoder 1 on GPIO 32 and 33, 0 position
+                      {32, 33, 0},                    // encoder 1 on GPIO 32 and 33, 0 position
                       {34, 35, 0}};                   // encoder 2 on GPIO 34 and 35, 0 position
-long target[] = {0, 0, 0};                               // target encoder count for motor
-long lastEncoder[] = {0, 0, 0};                          // encoder count at last control cycle
-float targetF[] = {0.0, 0.0, 0.0};                         // target for motor as float
+long target[] = {0, 0, 0};                            // target encoder count for motor
+long lastEncoder[] = {0, 0, 0};                       // encoder count at last control cycle
+float targetF[] = {0.0, 0.0, 0.0};                    // target for motor as float
 ControlDataPacket inData;                             // control data packet from controller
 DriveDataPacket driveData;                            // data packet to send controller
+
 
 // REPLACE WITH MAC ADDRESS OF YOUR CONTROLLER ESP32
 uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x26,0xC4};  // MAC address of controller 78:E3:6D:65:26:C4
@@ -134,7 +139,7 @@ void setup() {
   
   // Set controller info
   memcpy(peerInfo.peer_addr, receiverMacAddress, 6);  // set address of peer
-  peerInfo.channel = 0;                               // set peer channel
+  peerInfo.channel = 1;                               // set peer channel
   peerInfo.encrypt = false;                           // no encryption of data
   
   // Add controller as ESP-NOW peer        
@@ -153,6 +158,7 @@ void setup() {
 
 void loop() {
   float deltaT = 0;                                   // time interval
+  float deltaScanT = 0;                                  // time interval for scanning
   long pos[] = {0, 0, 0};                                // current motor positions
   float velEncoder[] = {0, 0, 0};                        // motor velocity in counts/sec
   float velMotor[] = {0, 0, 0};                          // motor shaft velocity in rpm
@@ -224,18 +230,26 @@ void loop() {
     }
 
     //waterwheel code
-    if(inData.scan == 1){                          // if we recieve a command to scan
-       if(r < 6 && g < 7 && b < 6 && c < 16){     // if the object is good
-         driveData.detected = true;
-         posChange[2] = (float) (stepRate);
-       }else{                                       // if the object is bad
-         driveData.detected = false;
-         posChange[2] = (float) (-1 * stepRate);
-       }
-    }else{                                          // if we are not scanning
-    posChange[2] = 0;                             // motor is off
+    if(2 < r && r < 5 && g < 5 && g > 2 && b > 1 && b < 4 && c < 9 && c > 5){
+    Serial.println("nothing");
+    posChange[2] = 0;
+    scanTime = millis();
+  }else{
+    if((millis() - scanTime) > 2000){
+      if(2<r && r<5 && 3<g && g<7 && 2<b && b<5 && 11<c && c<15){
+        Serial.println("good!!!!!!");
+        driveData.detected = true;
+        posChange[2] = (float) (14*3);
+      }else{
+        Serial.println("bad!!!!!!!");
+        driveData.detected = false;
+        posChange[2] = (float) (-1*14*3);
+      }
     }
+  }
+      
     
+
     // Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);
 
       targetF[k] = targetF[k] + posChange[k];         // set new target position
@@ -347,7 +361,7 @@ void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   memcpy(&inData, incomingData, sizeof(inData));      // store drive data from controller
 #ifdef PRINT_INCOMING
   // Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);
-  //Serial.printf("%d\n", inData.scan);
+  Serial.printf("%d\n", inData.scan);
 #endif
 }
 

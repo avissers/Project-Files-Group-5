@@ -69,7 +69,7 @@ unsigned long lastHeartbeat = 0;                      // time of last heartbeat 
 unsigned long lastTime = 0;                           // last time of motor control was updated
 unsigned long scanTime = 0;                           // last time of motor control was updated
 unsigned long scanDelay = 100;                        // delay between scans
-unsigned long lastScanTime = 0;                       // last time of motor control was updated
+unsigned long lastScanTime = 0;                       // last time of scan
 unsigned int commsLossCount = 0;                      // number of sequential sent packets have dropped
  Encoder encoder[] = {{25, 26, 0},                    // encoder 0 on GPIO 25 and 26, 0 position
                       {32, 33, 0},                    // encoder 1 on GPIO 32 and 33, 0 position
@@ -157,7 +157,7 @@ void setup() {
 }
 
 void loop() {
-  float deltaT = 0;                                   // time interval
+  float deltaT = 0;                                      // time interval
   float deltaScanT = 0;                                  // time interval for scanning
   long pos[] = {0, 0, 0};                                // current motor positions
   float velEncoder[] = {0, 0, 0};                        // motor velocity in counts/sec
@@ -232,25 +232,23 @@ void loop() {
     }
 
     //waterwheel code
-    if(1 < r && r < 3 && g < 4 && g > 1 && b > 1 && b < 3 && c < 9 && c > 5){
-    Serial.println("nothing");
-    posChange[2] = 0;
-    scanTime = millis();
-  }else{
-    if((millis() - scanTime) > 2000){
-      if(1<r && r<4 && 1<g && g<5 && 1<b && b<4){// && 9<c && c<13){
-        Serial.println("good!!!!!!");
-        driveData.detected = true;
-        posChange[2] = (float) (14*4);
-      }else{
-        Serial.println("bad!!!!!!!");
-        driveData.detected = false;
-        posChange[2] = (float) (-1*14*4);
+    if(1 < r && r < 3 && g < 4 && g > 1 && b > 1 && b < 3 && c < 9 && c > 5){   //if there is nothing sensed
+    Serial.println("nothing");            // print nothing
+    posChange[2] = 0;                     // motor does not move
+    scanTime = millis();                  // set scan time to right now
+    }else{                                  // if somethins is there
+      if((millis() - scanTime) > 2000){     // check time against delay
+        if(1<r && r<4 && 1<g && g<5 && 1<b && b<4){// && 9<c && c<13){ // if "green"
+          Serial.println("good!!!!!!");       // print good!!!
+          driveData.detected = true;          // detected is true
+          posChange[2] = (float) (14*4);      // move waterwheel forward
+        }else{                                // if "not green"
+          Serial.println("bad!!!!!!!");       // print bad!!
+          driveData.detected = false;         // detected is false
+          posChange[2] = (float) (-1*14*4);   // spin wheel the other way
+        }
       }
     }
-  }
-      
-    
 
     // Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);
 

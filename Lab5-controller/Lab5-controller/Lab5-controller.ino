@@ -99,7 +99,7 @@ void setup() {
   
   // Set drive info
   memcpy(peerInfo.peer_addr, receiverMacAddress, 6);  // set address of peer
-  peerInfo.channel = 0;                               // set peer channel 
+  peerInfo.channel = 1;                               // set peer channel 
   peerInfo.encrypt = false;                           // no encryption of data
   
   // Add drive as ESP-NOW peer        

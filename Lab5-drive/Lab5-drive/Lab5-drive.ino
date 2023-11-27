@@ -18,6 +18,7 @@ void setMotor(int dir, int pwm, int in1, int in2);
 void ARDUINO_ISR_ATTR encoderISR(void* arg);
 void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len);
 void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
+long degreesToDutyCycle(int deg);
 
 // Control data packet structure
 struct ControlDataPacket {
@@ -26,6 +27,7 @@ struct ControlDataPacket {
   unsigned long time;                                 // time packet sent
   int turn;                                           // turn: -1 = left, 0 = straight, -1 = right
   int scan;                                           // 1 - initiate scan, 0 - do nothing
+  int open;                                           // 1 - open back door, 0 - do nothing 
 };
 
 // Drive data packet structure
@@ -62,6 +64,8 @@ const float kp = 1.5;                                 // proportional gain for P
 const float ki = 0.2;                                 // integral gain for PID
 const float kd = 0.8;                                 // derivative gain for PID
 const int cTCSLED = 23;                               // GPIO pin for LED on TCS34725
+const int ci_ServoPin = 12;                          // GPIO pin for servo motor
+const int ci_ServoChannel = 6;                       // PWM channel used for the RC servo motor
 
 // Variables
 unsigned long detectionTime = 0;                      // store time when object is detected
@@ -250,8 +254,15 @@ void loop() {
       }
     }
 
-    // Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);
+    // servo code 
 
+    if (inData.open == 1) {
+      ledcWrite(ci_ServoChannel,degreesToDutyCycle(30));
+    } else {
+       ledcWrite(ci_ServoChannel,degreesToDutyCycle(150));
+    }
+
+    // Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);
       targetF[k] = targetF[k] + posChange[k];         // set new target position
       if (k == 0) {                                   // assume differential drive
         target[k] = (long) targetF[k];                // motor 1 spins one way
@@ -335,6 +346,25 @@ void setMotor(int dir, int pwm, int in1, int in2) {
     ledcWrite(in1, 0);
     ledcWrite(in2, 0);
   }
+}
+
+// Converts servo position in degrees into the required duty cycle for an RC servo motor control signal 
+// assuming 16-bit resolution (i.e., value represented as fraction of 65535). 
+// Note that the constants for minimum and maximum duty cycle may need to be adjusted for a specific motor
+long degreesToDutyCycle(int deg) {
+  const long cl_MinDutyCycle = 1650;                 // duty cycle for 0 degrees
+  const long cl_MaxDutyCycle = 8175;                 // duty cycle for 180 degrees
+
+  long l_DutyCycle = map(deg, 0, 180, cl_MinDutyCycle, cl_MaxDutyCycle);  // convert to duty cycle
+
+#ifdef OUTPUT_ON
+  float f_Percent = l_DutyCycle * 0.0015259;         // dutyCycle / 65535 * 100
+  Serial.printf("Degrees %d, Duty Cycle Val: %ld = %f%%\n", i_ServoPos, l_DutyCycle, f_Percent);
+  Serial.printf("Photocell value: %d, Servo position: %d\n", i_Photo, photo_ServoPos);      // print photocell values to serial monitor
+
+#endif
+
+  return l_DutyCycle;
 }
 
 // encoder interrupt service routine

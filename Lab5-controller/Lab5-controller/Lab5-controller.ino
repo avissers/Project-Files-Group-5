@@ -27,6 +27,7 @@ struct ControlDataPacket {
   unsigned long time;                                 // time packet sent
   int turn;                                           // turn direction: 1 = right, -1 = left, 0 = straight
   int scan;                                           // 1 - scan, 0 - do nothing
+  int open;                                          // 1 - open back door, 0 - do nothing 
 };
 
 // Drive data packet structure
@@ -53,7 +54,7 @@ Button rightButton = {13, 0, 0, false, true, true};         // define button to 
 Button forwardButton = {14, 0, 0, false, true, true};       // define button to go forward
 Button reverseButton = {12, 0, 0, false, true, true};       // define button to reverse
 Button scanButton = {33, 0, 0, false, true, true};          // define button for scanning
-
+Button openButton = {35, 0, 0, false, true, true};          // define button for opening door 
 // REPLACE WITH MAC ADDRESS OF YOUR DRIVE ESP32
 uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x5D,0x9C};  // MAC address of drive 78:E3:6D:65:5D:9C
 esp_now_peer_info_t peerInfo = {};                    // ESP-NOW peer information
@@ -146,6 +147,12 @@ void loop() {
       controlData.turn = 0;                          // no turn, go straight
     }
 
+    if(!openButton.state) {                          // if open button is pressed
+      controlData.open = 1;                          // set open equal to 1
+    } else {
+      controlData.open = 0;                          // otherwise set open to 0 
+    }
+    
     // if drive appears disconnected, update control signal to stop before sending
     if (commsLossCount > cMaxDroppedPackets) {
       controlData.dir = 0;

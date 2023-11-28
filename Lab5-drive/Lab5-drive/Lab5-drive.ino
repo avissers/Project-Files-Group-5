@@ -218,10 +218,10 @@ void loop() {
       
     if(inData.dir != 0){                            // if forward/revese button is engaged
       if(inData.turn == -1){                        // if we are turning left
-        posChange[0] = 0;                           // set motor one max speed to 0 (turn it off)
+        posChange[1] = 0;                           // set motor one max speed to 0 (turn it off)
       }
       if(inData.turn == 1){                        // if we are turning right
-        posChange[1] = 0;                          // set motor two max speed to 0 (turn it off)
+        posChange[0] = 0;                          // set motor two max speed to 0 (turn it off)
       }
     }
 
@@ -238,13 +238,14 @@ void loop() {
     }
 
     //waterwheel code
-    if(1 < r && r < 3 && g < 4 && g > 1 && b > 1 && b < 3 && c < 9 && c > 5){   //if there is nothing sensed
+    if(2 < r && r < 5 && g < 6 && g > 3 && b > 3 && b < 5 && c < 14 && c >11){   
+    //if there is nothing sensed
     Serial.println("nothing");            // print nothing
     posChange[2] = 0;                     // motor does not move
     scanTime = millis();                  // set scan time to right now
     }else{                                  // if somethins is there
       if((millis() - scanTime) > 2000){     // check time against delay
-        if(1<r && r<4 && 1<g && g<5 && 1<b && b<4){// && 9<c && c<13){ // if "green"
+        if(2 < r && r < 4 && g < 5 && g > 3 && b > 2 && b < 5 && c < 12 && c >9){ // if "green"
           Serial.println("good!!!!!!");       // print good!!!
           driveData.detected = true;          // detected is true
           posChange[2] = (float) (14*4);      // move waterwheel forward

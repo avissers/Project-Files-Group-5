@@ -26,7 +26,6 @@ struct ControlDataPacket {
   int speed;                                          // speed from potentiometer (from 1 to 100)
   unsigned long time;                                 // time packet sent
   int turn;                                           // turn: -1 = left, 0 = straight, -1 = right
-  int scan;                                           // 1 - initiate scan, 0 - do nothing
   int open;                                           // 1 - open back door, 0 - do nothing 
 };
 
@@ -115,6 +114,9 @@ void setup() {
     // configure encoder to trigger interrupt with each rising edge on channel A
     attachInterruptArg(encoder[k].chanA, encoderISR, &encoder[k], RISING);
     pinMode(cTCSLED, OUTPUT);                           // configure GPIO for control of LED on TCS34725
+
+    ledcAttachPin(ci_ServoPin, ci_ServoChannel);       // assign servo pin to servo channel
+    ledcSetup(ci_ServoChannel, 50, 16);                // setup for channel for 50 Hz, 16-bit resolution
 
     // Connect to TCS34725 colour sensor
       if (tcs.begin()) {
@@ -255,7 +257,6 @@ void loop() {
     }
 
     // servo code 
-
     if (inData.open == 1) {
       ledcWrite(ci_ServoChannel,degreesToDutyCycle(30));
     } else {

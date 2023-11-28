@@ -26,7 +26,6 @@ struct ControlDataPacket {
   int speed;                                          //motor speed
   unsigned long time;                                 // time packet sent
   int turn;                                           // turn direction: 1 = right, -1 = left, 0 = straight
-  int scan;                                           // 1 - scan, 0 - do nothing
   int open;                                          // 1 - open back door, 0 - do nothing 
 };
 
@@ -53,8 +52,7 @@ Button leftButton = {27, 0, 0, false, true, true};          // define button to 
 Button rightButton = {13, 0, 0, false, true, true};         // define button to go straight
 Button forwardButton = {14, 0, 0, false, true, true};       // define button to go forward
 Button reverseButton = {12, 0, 0, false, true, true};       // define button to reverse
-Button scanButton = {33, 0, 0, false, true, true};          // define button for scanning
-Button openButton = {35, 0, 0, false, true, true};          // define button for opening door 
+Button openButton = {33, 0, 0, false, true, true};          // define button for scanning
 // REPLACE WITH MAC ADDRESS OF YOUR DRIVE ESP32
 uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x5D,0x9C};  // MAC address of drive 78:E3:6D:65:5D:9C
 esp_now_peer_info_t peerInfo = {};                    // ESP-NOW peer information
@@ -81,8 +79,8 @@ void setup() {
   attachInterruptArg(rightButton.pin, buttonISR, &rightButton, CHANGE);  // configure right button ISR to trigger on change
   pinMode(cLED1Pin, OUTPUT);                                             // configure LED for output
   pinMode(cPotPin, INPUT);                                               // set up potentiometer for input
-  pinMode(scanButton.pin, INPUT_PULLUP);                                 // configure scanning button
-  attachInterruptArg(scanButton.pin, buttonISR, &scanButton, CHANGE);    // attach interrupt
+  pinMode(openButton.pin, INPUT_PULLUP);                                 // configure scanning button
+  attachInterruptArg(openButton.pin, buttonISR, &openButton, CHANGE);    // attach interrupt
 
 
   // Initialize ESP-NOW
@@ -125,10 +123,10 @@ void loop() {
     controlData.time = curTime;                       // update transmission time
     controlData.speed = map(analogRead(cPotPin), 0, 4095, 0, 100);
 
-    if(!scanButton.state){
-      controlData.scan = 1;
+    if(!openButton.state){
+      controlData.open = 1;
     }else {
-      controlData.scan = 0;
+      controlData.open = 0;
     }
 
     if(!forwardButton.state){                        // if forward button is pressed

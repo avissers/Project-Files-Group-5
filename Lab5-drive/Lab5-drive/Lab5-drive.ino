@@ -238,21 +238,21 @@ void loop() {
     }
 
     //waterwheel code
-    if(8 < r && r < 12 && g < 14 && g > 10 && b >9 && b < 13 && c > 30){// && c < 27 && c >22){   
+    if(15 < r && r < 22 && 20 < g && g < 25 && 18 < b && b < 22){// && c < 27 && c >22){   
     //if there is nothing sensed
     Serial.println("nothing");            // print nothing
     posChange[2] = 0;                     // motor does not move
     scanTime = millis();                  // set scan time to right now
     }else{                                  // if somethins is there
       if((millis() - scanTime) > 2000){     // check time against delay
-        if(3 < r && r < 6 && g < 8 && g > 5 && b > 4 && b < 7 && c < 18 && c > 14){ // if "green"
+        if(3 < r && r < 8 && 5 < g && g < 11 && 4 < b && b < 10){ // if "green"
           Serial.println("good!!!!!!");       // print good!!!
           driveData.detected = true;          // detected is true
-          //posChange[2] = (float) (14*4);      // move waterwheel forward
+          posChange[2] = (float) (14*4);      // move waterwheel forward
         }else{                                // if "not green"
           Serial.println("bad!!!!!!!");       // print bad!!
           driveData.detected = false;         // detected is false
-          //posChange[2] = (float) (-1*14*4);   // spin wheel the other way
+          posChange[2] = (float) (-1*14*4);   // spin wheel the other way
         }
       }
     }

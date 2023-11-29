@@ -238,21 +238,21 @@ void loop() {
     }
 
     //waterwheel code
-    if(2 < r && r < 5 && g < 6 && g > 3 && b > 3 && b < 5 && c < 14 && c >11){   
+    if(8 < r && r < 12 && g < 14 && g > 10 && b >9 && b < 13 && c > 30){// && c < 27 && c >22){   
     //if there is nothing sensed
     Serial.println("nothing");            // print nothing
     posChange[2] = 0;                     // motor does not move
     scanTime = millis();                  // set scan time to right now
     }else{                                  // if somethins is there
       if((millis() - scanTime) > 2000){     // check time against delay
-        if(2 < r && r < 4 && g < 5 && g > 3 && b > 2 && b < 5 && c < 12 && c >9){ // if "green"
+        if(3 < r && r < 6 && g < 8 && g > 5 && b > 4 && b < 7 && c < 18 && c > 14){ // if "green"
           Serial.println("good!!!!!!");       // print good!!!
           driveData.detected = true;          // detected is true
-          posChange[2] = (float) (14*4);      // move waterwheel forward
+          //posChange[2] = (float) (14*4);      // move waterwheel forward
         }else{                                // if "not green"
           Serial.println("bad!!!!!!!");       // print bad!!
           driveData.detected = false;         // detected is false
-          posChange[2] = (float) (-1*14*4);   // spin wheel the other way
+          //posChange[2] = (float) (-1*14*4);   // spin wheel the other way
         }
       }
     }
@@ -261,7 +261,7 @@ void loop() {
     if (inData.open == 1) {
       ledcWrite(ci_ServoChannel,degreesToDutyCycle(30));
     } else {
-       ledcWrite(ci_ServoChannel,degreesToDutyCycle(150));
+       ledcWrite(ci_ServoChannel,degreesToDutyCycle(130));
     }
 
     // Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);

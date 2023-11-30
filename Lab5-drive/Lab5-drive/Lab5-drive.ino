@@ -191,6 +191,7 @@ void loop() {
     tcs.getRawData(&r, &g, &b, &c);                   // get raw RGBC values
   #ifdef PRINT_COLOUR            
       Serial.printf("R: %d, G: %d, B: %d, C %d\n", r, g, b, c);
+      //Serial.printf("R: %d,\n", inData.open);
   #endif
   }
 
@@ -247,7 +248,7 @@ void loop() {
       //scanTime = millis();                  // set scan time to right now
       //}else{                                  // if somethins is there
         if((millis() - scanTime) > 3000){     // check time against delay
-          if(1 < r && r < 5 && 1 < g && g < 8 && 1 < b && b < 8){ // if "green"
+          if(1 < r && r < 6 && 1 < g && g < 8 && 1 < b && b < 8){ // if "green"
             Serial.println("good!!!!!!");       // print good!!!
             driveData.detected = true;          // detected is true
             posChange[2] = (float) (14*4);      // move waterwheel forward
@@ -395,8 +396,8 @@ void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   }
   memcpy(&inData, incomingData, sizeof(inData));      // store drive data from controller
 #ifdef PRINT_INCOMING
-  // Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);
-  Serial.printf("%d\n", inData.scan);
+  Serial.printf("%d, %d, %d\n", inData.dir, inData.turn, inData.speed);
+  //Serial.printf("%d\n", inData.scan);
 #endif
 }
 

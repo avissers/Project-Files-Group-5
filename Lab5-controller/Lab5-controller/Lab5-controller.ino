@@ -82,7 +82,7 @@ void setup() {
   pinMode(cLED1Pin, OUTPUT);                                             // configure LED for output
   pinMode(cPotPin, INPUT);                                               // set up potentiometer for input
   pinMode(openButton.pin, INPUT_PULLUP);                                 // configure scanning button
-  attachInterruptArg(openButton.pin, buttonISR, &scanButton, CHANGE);    // attach interrupt
+  attachInterruptArg(openButton.pin, buttonISR, &openButton, CHANGE);    // attach interrupt
   pinMode(scanButton.pin, INPUT_PULLUP);                                 // configure scanning button
   attachInterruptArg(scanButton.pin, buttonISR, &scanButton, CHANGE);    // attach interrupt
 

@@ -26,8 +26,8 @@ struct ControlDataPacket {
   int speed;                                          //motor speed
   unsigned long time;                                 // time packet sent
   int turn;                                           // turn direction: 1 = right, -1 = left, 0 = straight
-  int scan;                                           // 1 - scan, 0 - do nothing
-  int open;                                          // 1 - open back door, 0 - do nothing 
+  int open;                                           // 1 - scan, 0 - do nothing
+  int scan;                                          // 1 - open back door, 0 - do nothing 
 };
 
 // Drive data packet structure
@@ -53,10 +53,10 @@ Button leftButton = {27, 0, 0, false, true, true};          // define button to 
 Button rightButton = {13, 0, 0, false, true, true};         // define button to go straight
 Button forwardButton = {14, 0, 0, false, true, true};       // define button to go forward
 Button reverseButton = {12, 0, 0, false, true, true};       // define button to reverse
-Button scanButton = {33, 0, 0, false, true, true};          // define button for scanning
-Button openButton = {35, 0, 0, false, true, true};          // define button for opening door 
+Button scanButton = {35, 0, 0, false, true, true};          // define button for scanning
+Button openButton = {33, 0, 0, false, true, true};          // define button for opening door 
 // REPLACE WITH MAC ADDRESS OF YOUR DRIVE ESP32
-uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x5D,0x9C};  // MAC address of drive 78:E3:6D:65:5D:9C
+uint8_t receiverMacAddress[] = {0x78,0xE3,0x6D,0x65,0x2C,0x80};  // MAC address of drive 78:E3:6D:65:5D:9C
 esp_now_peer_info_t peerInfo = {};                    // ESP-NOW peer information
 ControlDataPacket controlData;                        // data packet to send to drive system
 DriveDataPacket inData;                               // data packet from drive system

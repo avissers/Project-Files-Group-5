@@ -27,6 +27,7 @@ struct ControlDataPacket {
   unsigned long time;                                 // time packet sent
   int turn;                                           // turn: -1 = left, 0 = straight, -1 = right
   int open;                                           // 1 - open back door, 0 - do nothing 
+  int scan;
 };
 
 // Drive data packet structure
@@ -238,24 +239,26 @@ void loop() {
     }
 
     //waterwheel code
-    if(15 < r && r < 22 && 20 < g && g < 25 && 18 < b && b < 22){// && c < 27 && c >22){   
-    //if there is nothing sensed
-    Serial.println("nothing");            // print nothing
-    posChange[2] = 0;                     // motor does not move
-    scanTime = millis();                  // set scan time to right now
-    }else{                                  // if somethins is there
-      if((millis() - scanTime) > 2000){     // check time against delay
-        if(3 < r && r < 8 && 5 < g && g < 11 && 4 < b && b < 10){ // if "green"
-          Serial.println("good!!!!!!");       // print good!!!
-          driveData.detected = true;          // detected is true
-          posChange[2] = (float) (14*4);      // move waterwheel forward
-        }else{                                // if "not green"
-          Serial.println("bad!!!!!!!");       // print bad!!
-          driveData.detected = false;         // detected is false
-          posChange[2] = (float) (-1*14*4);   // spin wheel the other way
+    if(inData.scan == 1){
+      //if(15 < r && r < 22 && 20 < g && g < 25 && 18 < b && b < 22){// && c < 27 && c >22){   
+      //if there is nothing sensed
+      //Serial.println("nothing");            // print nothing
+      //posChange[2] = 0;                     // motor does not move
+      //scanTime = millis();                  // set scan time to right now
+      //}else{                                  // if somethins is there
+        if((millis() - scanTime) > 3000){     // check time against delay
+          if(1 < r && r < 5 && 1 < g && g < 8 && 1 < b && b < 8){ // if "green"
+            Serial.println("good!!!!!!");       // print good!!!
+            driveData.detected = true;          // detected is true
+            posChange[2] = (float) (14*4);      // move waterwheel forward
+          }else{                                // if "not green"
+            Serial.println("bad!!!!!!!");       // print bad!!
+            driveData.detected = false;         // detected is false
+            posChange[2] = (float) (-1*14*4);   // spin wheel the other way
+          }
         }
       }
-    }
+    //}
 
     // servo code 
     if (inData.open == 1) {
